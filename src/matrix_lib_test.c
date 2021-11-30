@@ -49,8 +49,20 @@ int main(int argc, char *argv[])
 	set_number_threads(ve_num_threads);
 	ret = init_proc_ve_node();
 	matrixA = read_matrix_binfile(bf1, a_width, a_height);
+	ret = load_ve_matrix(matrixA);
+	if (!ret)
+		die("load_ve_matrix()");
+
 	matrixB = read_matrix_binfile(bf2, b_width, b_height);
+	ret = load_ve_matrix(matrixB);
+	if (!ret)
+		die("load_ve_matrix()");
+
 	matrixC = zero_matrix(a_height, b_width);
+	ret = load_ve_matrix(matrixC);
+	if (!ret)
+		die("load_ve_matrix()");
+
 	gettimeofday(&stop, NULL);
 
 	if (!ret)
@@ -62,17 +74,17 @@ int main(int argc, char *argv[])
 	printf("matrix init time: %f ms\n", timedifference_msec(start, stop));
 
 	gettimeofday(&start, NULL);
-	ret = load_ve_matrix(matrixA);
+	ret = sync_vh_ve_matrix(matrixA);
 	if (!ret)
-		die("load_ve_matrix()");
+		die("sync_vh_ve_matrix()");
 
 	ret = scalar_matrix_mult(escalar, matrixA);
 	if (!ret)
 		die("scalar_matrix_mult()");
 
-	ret = unload_ve_matrix(matrixA);
+	ret = sync_ve_vh_matrix(matrixA);
 	if (!ret)
-		die("unload_ve_matrix()");
+		die("sync_ve_vh_matrix()");
 	gettimeofday(&stop, NULL);
 
 	printf("scalar_matrix_mult time: %f ms\n", timedifference_msec(start, stop));
@@ -80,14 +92,46 @@ int main(int argc, char *argv[])
 	dump_matrix_binfile(bf3, matrixA);
 
 	gettimeofday(&start, NULL);
+	ret = sync_vh_ve_matrix(matrixA);
+	if (!ret)
+		die("sync_vh_ve_matrix()");
+
+	ret = sync_vh_ve_matrix(matrixB);
+	if (!ret)
+		die("sync_vh_ve_matrix()");
+
 	ret = matrix_matrix_mult(matrixA, matrixB, matrixC);
-	gettimeofday(&stop, NULL);
 	if (!ret)
 		die("matrix_matrix_mult() call failure");
+
+	ret = sync_ve_vh_matrix(matrixA);
+	if (!ret)
+		die("sync_ve_vh_matrix()");
+
+	ret = sync_ve_vh_matrix(matrixB);
+	if (!ret)
+		die("sync_ve_vh_matrix()");
+
+	ret = sync_ve_vh_matrix(matrixC);
+	if (!ret)
+		die("sync_ve_vh_matrix()");
+	gettimeofday(&stop, NULL);
 
 	printf("matrix_matrix_mult time: %f ms\n", timedifference_msec(start, stop));
 
 	dump_matrix_binfile(bf4, matrixC);
+
+	ret = unload_ve_matrix(matrixA);
+	if (!ret)
+		die("unload_ve_matrix()");
+
+	ret = unload_ve_matrix(matrixB);
+	if (!ret)
+		die("unload_ve_matrix()");
+
+	ret = unload_ve_matrix(matrixC);
+	if (!ret)
+		die("unload_ve_matrix()");
 
 	delete_matrix(matrixA);
 	delete_matrix(matrixB);

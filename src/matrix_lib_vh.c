@@ -79,7 +79,83 @@ fail1:
 
 int matrix_matrix_mult(struct matrix *matrixA, struct matrix * matrixB, struct matrix * matrixC)
 {
-	return 1;
+	struct veo_thr_ctxt *veo_ctxt;
+	struct veo_args *veo_argp;
+	uint64_t veo_call_handle, veo_ret;
+	unsigned long int m, n, k;
+	int ret;
+
+	if (!matrixA || !matrixA->vh_rows || !matrixA->ve_rows
+			|| !matrixB || !matrixB->vh_rows || !matrixB->ve_rows
+			|| !matrixC || !matrixC->vh_rows || !matrixC->ve_rows )
+		goto fail1;
+
+	if (matrixC->height != matrixA->height || matrixC->width != matrixB->width
+			|| matrixA->width != matrixB->height)
+		goto fail1;
+
+	m = matrixA->height;
+	n = matrixA->width;
+	k = matrixB->width;
+
+	veo_ctxt = veo_context_open(_ve_proc);
+	if (!veo_ctxt)
+		goto fail1;
+
+	veo_argp = veo_args_alloc();
+	if (!veo_argp)
+		goto fail2;
+
+	veo_args_clear(veo_argp);
+	ret = veo_args_set_i32(veo_argp, 0, _ve_num_threads);
+	if (ret != 0)
+		goto fail3;
+
+	ret = veo_args_set_u64(veo_argp, 1, m);
+	if (ret != 0)
+		goto fail3;
+
+	ret = veo_args_set_u64(veo_argp, 2, n);
+	if (ret != 0)
+		goto fail3;
+
+	ret = veo_args_set_u64(veo_argp, 3, k);
+	if (ret != 0)
+		goto fail3;
+
+	ret = veo_args_set_hmem(veo_argp, 4, matrixA->ve_rows);
+	if (ret != 0)
+		goto fail3;
+
+	ret = veo_args_set_hmem(veo_argp, 5, matrixB->ve_rows);
+	if (ret != 0)
+		goto fail3;
+
+	ret = veo_args_set_hmem(veo_argp, 6, matrixC->ve_rows);
+	if (ret != 0)
+		goto fail3;
+
+	veo_call_handle = veo_call_async_by_name(veo_ctxt, _ve_lib_handle, _lib_matrix_matrix_mult, veo_argp);
+	if (veo_call_handle == VEO_REQUEST_ID_INVALID)
+		goto fail3;
+
+	ret = veo_call_wait_result(veo_ctxt, veo_call_handle, &veo_ret);
+	if (ret != VEO_COMMAND_OK)
+		goto fail3;
+
+
+	veo_args_free(veo_argp);
+	veo_context_close(veo_ctxt);
+
+	return veo_ret == 1;
+
+	/* ERROR CLEANUP */
+fail3:
+	veo_args_free(veo_argp);
+fail2:
+	veo_context_close(veo_ctxt);
+fail1:
+	return 0;
 }
 
 void set_ve_execution_node(int num_node)
