@@ -28,7 +28,7 @@ uint64_t scalar_matrix_mult(int num_threads, unsigned long int height, unsigned 
 			last_index = first_index + n;
 		}
 
-		for (int i = first_index; i < last_index; ++i)
+		for (i = first_index; i < last_index; ++i)
 			rows[i] *= scalar;
 	}
 
