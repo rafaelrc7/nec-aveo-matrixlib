@@ -1,0 +1,8 @@
+bin/
+obj/
+.cache/
+*.o
+*.dep
+compile_commands.json
+copy-up.sh
+
