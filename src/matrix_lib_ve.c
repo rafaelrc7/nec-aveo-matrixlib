@@ -37,8 +37,8 @@ uint64_t scalar_matrix_mult(int num_threads, unsigned long int height, unsigned 
 
 uint64_t matrix_matrix_mult(int num_threads,
 							unsigned long int m,
-							unsigned long int n, // p
-							unsigned long int k, // q
+							unsigned long int n,
+							unsigned long int k,
 							float *mA_rows,
 							float *mB_rows,
 							float *mC_rows)
@@ -66,7 +66,6 @@ uint64_t matrix_matrix_mult(int num_threads,
 		unsigned long int first_line, last_line, ln, cl, ij;
 		tid = omp_get_thread_num();
 
-
 		if (tid < rest) {
 			first_line = tid * (els+1);
 			last_line = first_line + els+1;
@@ -78,12 +77,10 @@ uint64_t matrix_matrix_mult(int num_threads,
 		for (ln = first_line; ln < last_line; ++ln) {
 			for (cl = 0; cl < k; ++cl) {
 				float sum = 0.0f;
-				for (ij = 0; ij < n; ++ij) {
+				for (ij = 0; ij < n; ++ij)
 					sum += mA_rows[ln * n + ij] * mB_rows[ij * k + cl];
-				}
 				mC_rows[ln * k + cl] = sum;
 			}
-
 		}
 	}
 

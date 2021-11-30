@@ -9,153 +9,118 @@
 static int _ve_num_node = 0;
 static int _ve_num_threads = 1;
 static uint64_t _ve_lib_handle = 0;
-static const char *_ve_lib_path = "./matrix_lib_ve.so";
 static struct veo_proc_handle *_ve_proc = NULL;
+static struct veo_thr_ctxt *_veo_ctxt = NULL;
+static struct veo_args *_veo_argp = NULL;
 
+static const char *_ve_lib_path = "./matrix_lib_ve.so";
 static const char *_lib_scalar_matrix_mult = "scalar_matrix_mult";
 static const char *_lib_matrix_matrix_mult = "matrix_matrix_mult";
 
 int scalar_matrix_mult(float scalar_value, struct matrix *matrix)
 {
-	struct veo_thr_ctxt *veo_ctxt;
-	struct veo_args *veo_argp;
 	uint64_t veo_call_handle, veo_ret;
 	int ret;
 
+	if (!_ve_proc)
+		return 0;
+
 	if (!matrix || !matrix->vh_rows || !matrix->ve_rows)
-		goto fail1;
+		return 0;
 
-	veo_ctxt = veo_context_open(_ve_proc);
-	if (!veo_ctxt)
-		goto fail1;
+	veo_args_clear(_veo_argp);
 
-	veo_argp = veo_args_alloc();
-	if (!veo_argp)
-		goto fail2;
-
-	veo_args_clear(veo_argp);
-	ret = veo_args_set_i32(veo_argp, 0, _ve_num_threads);
+	ret = veo_args_set_i32(_veo_argp, 0, _ve_num_threads);
 	if (ret != 0)
-		goto fail3;
+		return 0;
 
-	ret = veo_args_set_u64(veo_argp, 1, matrix->height);
+	ret = veo_args_set_u64(_veo_argp, 1, matrix->height);
 	if (ret != 0)
-		goto fail3;
+		return 0;
 
-	ret = veo_args_set_u64(veo_argp, 2, matrix->width);
+	ret = veo_args_set_u64(_veo_argp, 2, matrix->width);
 	if (ret != 0)
-		goto fail3;
+		return 0;
 
-	ret = veo_args_set_hmem(veo_argp, 3, matrix->ve_rows);
+	ret = veo_args_set_hmem(_veo_argp, 3, matrix->ve_rows);
 	if (ret != 0)
-		goto fail3;
+		return 0;
 
-	ret = veo_args_set_float(veo_argp, 4, scalar_value);
+	ret = veo_args_set_float(_veo_argp, 4, scalar_value);
 	if (ret != 0)
-		goto fail3;
+		return 0;
 
-	veo_call_handle = veo_call_async_by_name(veo_ctxt, _ve_lib_handle, _lib_scalar_matrix_mult, veo_argp);
+	veo_call_handle = veo_call_async_by_name(_veo_ctxt, _ve_lib_handle, _lib_scalar_matrix_mult, _veo_argp);
 	if (veo_call_handle == VEO_REQUEST_ID_INVALID)
-		goto fail3;
+		return 0;
 
-	ret = veo_call_wait_result(veo_ctxt, veo_call_handle, &veo_ret);
+	ret = veo_call_wait_result(_veo_ctxt, veo_call_handle, &veo_ret);
 	if (ret != VEO_COMMAND_OK)
-		goto fail3;
-
-
-	veo_args_free(veo_argp);
-	veo_context_close(veo_ctxt);
+		return 0;
 
 	return veo_ret == 1;
-
-	/* ERROR CLEANUP */
-fail3:
-	veo_args_free(veo_argp);
-fail2:
-	veo_context_close(veo_ctxt);
-fail1:
-	return 0;
 }
 
 int matrix_matrix_mult(struct matrix *matrixA, struct matrix * matrixB, struct matrix * matrixC)
 {
-	struct veo_thr_ctxt *veo_ctxt;
-	struct veo_args *veo_argp;
 	uint64_t veo_call_handle, veo_ret;
 	unsigned long int m, n, k;
 	int ret;
 
+	if (!_ve_proc)
+		return 0;
+
 	if (!matrixA || !matrixA->vh_rows || !matrixA->ve_rows
 			|| !matrixB || !matrixB->vh_rows || !matrixB->ve_rows
 			|| !matrixC || !matrixC->vh_rows || !matrixC->ve_rows )
-		goto fail1;
+		return 0;
 
 	if (matrixC->height != matrixA->height || matrixC->width != matrixB->width
 			|| matrixA->width != matrixB->height)
-		goto fail1;
+		return 0;
 
 	m = matrixA->height;
 	n = matrixA->width;
 	k = matrixB->width;
 
-	veo_ctxt = veo_context_open(_ve_proc);
-	if (!veo_ctxt)
-		goto fail1;
-
-	veo_argp = veo_args_alloc();
-	if (!veo_argp)
-		goto fail2;
-
-	veo_args_clear(veo_argp);
-	ret = veo_args_set_i32(veo_argp, 0, _ve_num_threads);
+	veo_args_clear(_veo_argp);
+	ret = veo_args_set_i32(_veo_argp, 0, _ve_num_threads);
 	if (ret != 0)
-		goto fail3;
+		return 0;
 
-	ret = veo_args_set_u64(veo_argp, 1, m);
+	ret = veo_args_set_u64(_veo_argp, 1, m);
 	if (ret != 0)
-		goto fail3;
+		return 0;
 
-	ret = veo_args_set_u64(veo_argp, 2, n);
+	ret = veo_args_set_u64(_veo_argp, 2, n);
 	if (ret != 0)
-		goto fail3;
+		return 0;
 
-	ret = veo_args_set_u64(veo_argp, 3, k);
+	ret = veo_args_set_u64(_veo_argp, 3, k);
 	if (ret != 0)
-		goto fail3;
+		return 0;
 
-	ret = veo_args_set_hmem(veo_argp, 4, matrixA->ve_rows);
+	ret = veo_args_set_hmem(_veo_argp, 4, matrixA->ve_rows);
 	if (ret != 0)
-		goto fail3;
+		return 0;
 
-	ret = veo_args_set_hmem(veo_argp, 5, matrixB->ve_rows);
+	ret = veo_args_set_hmem(_veo_argp, 5, matrixB->ve_rows);
 	if (ret != 0)
-		goto fail3;
+		return 0;
 
-	ret = veo_args_set_hmem(veo_argp, 6, matrixC->ve_rows);
+	ret = veo_args_set_hmem(_veo_argp, 6, matrixC->ve_rows);
 	if (ret != 0)
-		goto fail3;
+		return 0;
 
-	veo_call_handle = veo_call_async_by_name(veo_ctxt, _ve_lib_handle, _lib_matrix_matrix_mult, veo_argp);
+	veo_call_handle = veo_ca_ll_async_by_name(_veo_ctxt, _ve_lib_handle, _lib_matrix_matrix_mult, _veo_argp);
 	if (veo_call_handle == VEO_REQUEST_ID_INVALID)
-		goto fail3;
+		return 0;
 
-	ret = veo_call_wait_result(veo_ctxt, veo_call_handle, &veo_ret);
+	ret = veo_call_wait_result(_veo_ctxt, veo_call_handle, &veo_ret);
 	if (ret != VEO_COMMAND_OK)
-		goto fail3;
-
-
-	veo_args_free(veo_argp);
-	veo_context_close(veo_ctxt);
+		return 0;
 
 	return veo_ret == 1;
-
-	/* ERROR CLEANUP */
-fail3:
-	veo_args_free(veo_argp);
-fail2:
-	veo_context_close(veo_ctxt);
-fail1:
-	return 0;
 }
 
 void set_ve_execution_node(int num_node)
@@ -176,32 +141,57 @@ void set_number_threads(int num_threads)
 int init_proc_ve_node(void)
 {
 	if (_ve_proc)
-		return 0;
+		goto fail1;
 
 	_ve_proc = veo_proc_create(_ve_num_node);
 	if (!_ve_proc)
-		return 0;
+		goto fail1;
 
 	_ve_lib_handle = veo_load_library(_ve_proc, _ve_lib_path);
 	if (!_ve_lib_handle)
-		return 0;
+		goto fail2;
+
+	_veo_ctxt = veo_context_open(_ve_proc);
+	if (!_veo_ctxt)
+		goto fail3;
+
+	_veo_argp = veo_args_alloc();
+	if (!_veo_argp)
+		goto fail4;
 
 	return 1;
+
+	/* ERROR CLEANUP */
+fail4:
+	veo_context_close(_veo_ctxt);
+fail3:
+	veo_unload_library(_ve_proc, _ve_lib_handle);
+fail2:
+	veo_proc_destroy(_ve_proc);
+	_ve_proc = NULL;
+fail1:
+	return 0;
 }
 
 int close_proc_ve_node(void)
 {
-	if (!_ve_proc || !_ve_lib_handle)
+	int ret = 1;
+	if (!_ve_proc)
 		return 0;
+
+	veo_args_free(_veo_argp);
+
+	if (veo_context_close(_veo_ctxt) == NULL)
+		ret = 0;
 
 	if (veo_unload_library(_ve_proc, _ve_lib_handle) != 0)
-		return 0;
+		ret = 0;
 
 	if (veo_proc_destroy(_ve_proc) < 0)
-		return 0;
+		ret = 0;
 
 	_ve_proc = NULL;
-	return 1;
+	return ret;
 }
 
 int load_ve_matrix(struct matrix *matrix)
