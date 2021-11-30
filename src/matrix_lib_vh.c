@@ -181,7 +181,7 @@ int close_proc_ve_node(void)
 
 	veo_args_free(_veo_argp);
 
-	if (veo_context_close(_veo_ctxt) == 0)
+	if (veo_context_close(_veo_ctxt) < 0)
 		ret = 0;
 
 	if (veo_unload_library(_ve_proc, _ve_lib_handle) != 0)
