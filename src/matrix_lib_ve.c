@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <omp.h>
 #include <veo_hmem.h>
 
 uint64_t scalar_matrix_mult(int num_threads, unsigned long int height, unsigned long int width, float *rows, float scalar)
@@ -7,19 +8,25 @@ uint64_t scalar_matrix_mult(int num_threads, unsigned long int height, unsigned 
 	unsigned long int matrix_size = height * width;
 	const unsigned long int n = matrix_size / num_threads;
 	const unsigned long int rest = matrix_size % num_threads;
-	const unsigned long int start_extra_thread = num_threads - rest;
 
 	rows = (float *)veo_get_hmem_addr(rows);
 	if (!rows)
 		return 0;
+
+	omp_set_num_threads(num_threads);
 
 	#pragma omp parallel private (num_threads, tid)
 	{
 		unsigned long int first_index, last_index, i;
 		tid = omp_get_thread_num();
 
-		first_index = tid * n + ((tid - rest) * ((tid > start_extra_thread) * (tid - start_extra_thread)));
-		last_index = first_index + n + (tid >= start_extra_thread);
+		if (tid < rest) {
+			first_index = tid * (n+1);
+			last_index = first_index + n+1;
+		} else {
+			first_index = tid*n + rest;
+			last_index = first_index + n;
+		}
 
 		for (int i = first_index; i < last_index; ++i)
 			rows[i] *= scalar;
@@ -39,7 +46,6 @@ uint64_t matrix_matrix_mult(int num_threads,
 	int tid;
 	const unsigned long int els = m / num_threads;
 	const unsigned long int rest = m % num_threads;
-	const unsigned long int start_extra_thread = num_threads - rest;
 
 	mA_rows = (float *)veo_get_hmem_addr(mA_rows);
 	if (!mA_rows)
@@ -53,13 +59,21 @@ uint64_t matrix_matrix_mult(int num_threads,
 	if (!mC_rows)
 		return 0;
 
+	omp_set_num_threads(num_threads);
+
 	#pragma omp parallel private (num_threads, tid)
 	{
 		unsigned long int first_line, last_line, ln, cl, ij;
 		tid = omp_get_thread_num();
 
-		first_line = tid * els + ((tid - rest) * ((tid > start_extra_thread) * (tid - start_extra_thread)));
-		last_line = first_line + els + (tid >= start_extra_thread);
+
+		if (tid < rest) {
+			first_line = tid * (els+1);
+			last_line = first_line + els+1;
+		} else {
+			first_line = tid*els + rest;
+			last_line = first_line + els;
+		}
 
 		for (ln = first_line; ln < last_line; ++ln) {
 			for (cl = 0; cl < k; ++cl) {
