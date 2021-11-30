@@ -112,7 +112,7 @@ int matrix_matrix_mult(struct matrix *matrixA, struct matrix * matrixB, struct m
 	if (ret != 0)
 		return 0;
 
-	veo_call_handle = veo_ca_ll_async_by_name(_veo_ctxt, _ve_lib_handle, _lib_matrix_matrix_mult, _veo_argp);
+	veo_call_handle = veo_call_async_by_name(_veo_ctxt, _ve_lib_handle, _lib_matrix_matrix_mult, _veo_argp);
 	if (veo_call_handle == VEO_REQUEST_ID_INVALID)
 		return 0;
 
