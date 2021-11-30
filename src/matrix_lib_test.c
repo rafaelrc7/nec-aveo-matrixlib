@@ -62,10 +62,18 @@ int main(int argc, char *argv[])
 	printf("matrix init time: %f ms\n", timedifference_msec(start, stop));
 
 	gettimeofday(&start, NULL);
-	ret = scalar_matrix_mult(escalar, matrixA);
-	gettimeofday(&stop, NULL);
+	ret = load_ve_matrix(matrixA);
 	if (!ret)
-		die("scalar_matrix_mult() call failure");
+		die("load_ve_matrix()");
+
+	ret = scalar_matrix_mult(escalar, matrixA);
+	if (!ret)
+		die("scalar_matrix_mult()");
+
+	ret = unload_ve_matrix(matrixA);
+	if (!ret)
+		die("unload_ve_matrix()");
+	gettimeofday(&stop, NULL);
 
 	printf("scalar_matrix_mult time: %f ms\n", timedifference_msec(start, stop));
 
@@ -84,9 +92,10 @@ int main(int argc, char *argv[])
 	delete_matrix(matrixA);
 	delete_matrix(matrixB);
 	delete_matrix(matrixC);
+
 	ret = close_proc_ve_node();
 	if (!ret)
-		die("colose_proc_ve_node()");
+		die("close_proc_ve_node()");
 
 	gettimeofday(&overall_t2, NULL);
 	printf("overall time: %f ms\n", timedifference_msec(overall_t1, overall_t2));
